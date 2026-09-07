@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { translations, type Language } from '@/lib/translations';
 
 export default function ContactPage() {
   const [lang, setLang] = useState<Language>('ja');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -33,6 +35,12 @@ export default function ContactPage() {
     setErrorMessage('');
 
     try {
+      // Get reCAPTCHA token
+      let recaptchaToken = '';
+      if (executeRecaptcha) {
+        recaptchaToken = await executeRecaptcha('contact_form');
+      }
+
       console.log('Submitting form data:', formData);
       
       const response = await fetch('/api/contact', {
@@ -40,7 +48,10 @@ export default function ContactPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken,
+        }),
       });
 
       console.log('Response status:', response.status, response.statusText);
